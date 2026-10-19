@@ -1,0 +1,15 @@
+
+services:
+  php-api:
+    build: ./my_api
+    ports:
+      - "8000:80"
+    volumes:
+      - ./my_api:/var/www/html
+    networks:
+      - mysql-network
+
+networks:
+  mysql-network:
+    external: true
+    name: mysql-db_default
