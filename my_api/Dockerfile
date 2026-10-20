@@ -1,6 +1,10 @@
 
-FROM php:8.3-apache
+FROM python:3.12-slim
 
-RUN docker-php-ext-install pdo_mysql
+WORKDIR /app
 
-COPY . /var/www/html/
+RUN pip install --no-cache-dir fastapi "uvicorn[standard]" pymysql
+
+COPY main.py .
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]

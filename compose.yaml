@@ -4,8 +4,12 @@ services:
     build: ./my_api
     ports:
       - "8000:80"
-    volumes:
-      - ./my_api:/var/www/html
+    environment:
+      DB_HOST: mysql-db
+      DB_PORT: "3306"
+      DB_NAME: Final_project_304_499
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD}
     networks:
       - mysql-network
 
