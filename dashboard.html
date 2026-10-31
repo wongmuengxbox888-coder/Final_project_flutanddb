@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sneaker Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col md:flex-row">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 p-6 flex flex-col justify-between">
+        <div>
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold text-xl border border-cyan-500/20">
+                    👟
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-white leading-tight">For shoe</h1>
+                    <p class="text-xs text-slate-400">Admin Dashboard</p>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <button onclick="switchTab('product')" id="nav-product" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    <span>Product (คลังสินค้า)</span>
+                </button>
+
+                <button onclick="switchTab('accept')" id="nav-accept" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Accept Product (อนุมัติสินค้า)</span>
+                </button>
+
+                <button onclick="switchTab('add')" id="nav-add" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Add Product (เพิ่มสินค้า)</span>
+                </button>
+            </nav>
+        </div>
+
+        <div class="pt-6 border-t border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-300">
+                    AD
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-white">Admin User</p>
+                    <p class="text-[10px] text-slate-400">FastAPI Backend</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+
+        <!-- PAGE 1: PRODUCT LIST -->
+        <section id="page-product">
+            <header class="mb-6">
+                <h2 class="text-2xl font-bold text-white">คลังสินค้า (Product Catalog)</h2>
+                <p class="text-slate-400 text-sm">จัดการและค้นหารายการรองเท้าทั้งหมดในระบบ</p>
+            </header>
+
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div class="relative w-full md:w-96">
+                    <svg class="w-5 h-5 absolute left-3 top-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="searchInput" oninput="filterProducts()" placeholder="ค้นหารุ่นรองเท้า..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                </div>
+
+                <div class="flex gap-2 flex-wrap w-full md:w-auto">
+                    <button onclick="setCategory('All')" class="filter-btn bg-cyan-500 text-slate-950 font-medium px-4 py-2 rounded-xl text-xs transition">ทั้งหมด</button>
+                    <button onclick="setCategory('Vintage')" class="filter-btn bg-slate-950 text-slate-400 border border-slate-800 font-medium px-4 py-2 rounded-xl text-xs hover:text-white transition">Vintage</button>
+                    <button onclick="setCategory('Limited')" class="filter-btn bg-slate-950 text-slate-400 border border-slate-800 font-medium px-4 py-2 rounded-xl text-xs hover:text-white transition">Limited Edition</button>
+                </div>
+            </div>
+
+            <div id="productGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="col-span-full text-center py-12 text-slate-500">กำลังโหลดข้อมูลจากฐานข้อมูล...</div>
+            </div>
+        </section>
+
+        <!-- PAGE 2: ACCEPT PRODUCT -->
+        <section id="page-accept" class="hidden">
+            <header class="mb-6">
+                <h2 class="text-2xl font-bold text-white">อนุมัติสินค้าฝากขาย (Accept Product)</h2>
+                <p class="text-slate-400 text-sm">ตรวจสอบรายการรองเท้าที่ผู้ใช้นำมาลงขาย</p>
+            </header>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-800 bg-slate-950 text-xs text-slate-400">
+                            <th class="p-4">ID</th>
+                            <th class="p-4">ชื่อรุ่นรองเท้า</th>
+                            <th class="p-4">ประเภท</th>
+                            <th class="p-4">ราคาเสนอขาย</th>
+                            <th class="p-4 text-center">การดำเนินการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="acceptTable" class="divide-y divide-slate-800 text-sm">
+                        <tr><td colspan="5" class="p-8 text-center text-slate-500">กำลังโหลดรายการรอการอนุมัติ...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- PAGE 3: ADD PRODUCT -->
+        <section id="page-add" class="hidden">
+            <header class="mb-6">
+                <h2 class="text-2xl font-bold text-white">เพิ่มรองเท้าเข้าคลัง (Add Product)</h2>
+                <p class="text-slate-400 text-sm">กรอกข้อมูลรองเท้าคู่ใหม่พร้อม URL รูปภาพเพื่อบันทึกเข้า MySQL</p>
+            </header>
+
+            <div class="max-w-2xl bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                <form id="addProductForm" onsubmit="handleAddProduct(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">ชื่อรุ่นรองเท้า (Name)</label>
+                        <input type="text" id="addName" required placeholder="เช่น Nike Air Force 1 '07" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">ประเภท (Category)</label>
+                            <select id="addType" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                                <option value="รองเท้าผู้ชาย">รองเท้าผู้ชาย</option>
+                                <option value="รองเท้าบาสเก็ตบอล">รองเท้าบาสเก็ตบอล</option>
+                                <option value="รองเท้าวิ่ง">รองเท้าวิ่ง</option>
+                                <option value="Vintage">Vintage</option>
+                                <option value="Limited Edition">Limited Edition</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">ราคา (Price)</label>
+                            <input type="number" id="addPrice" required placeholder="5200" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                        </div>
+                    </div>
+
+                    <!-- เพิ่มช่องใส่ Image URL กลับเข้ามา -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">ลิงก์รูปภาพ (Image URL / Path)</label>
+                        <input type="text" id="addImageUrl" placeholder="https://static.nike.com/... หรือชื่อไฟล์รูป" oninput="previewImage(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                    </div>
+
+                    <!-- ตัวอย่างการแสดงรูปภาพแบบ พรีวิว -->
+                    <div id="imagePreviewContainer" class="hidden">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">ตัวอย่างรูปภาพ (Preview)</label>
+                        <div class="h-36 w-full rounded-xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center">
+                            <img id="imagePreview" src="" alt="Preview" class="h-full object-cover">
+                        </div>
+                    </div>
+
+                    <div class="pt-4">
+                        <button type="submit" class="w-full bg-cyan-500 text-slate-950 font-semibold py-3 rounded-xl text-sm hover:bg-cyan-400 transition">
+                            บันทึกข้อมูลเข้าฐานข้อมูล
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const API_BASE_URL = "http://localhost:8000";
+
+        let products = [];
+        let pendingProducts = [];
+        let currentCategory = 'All';
+
+        // พรีวิวรูปภาพเมื่อพิมพ์ URL
+        function previewImage(url) {
+            const container = document.getElementById('imagePreviewContainer');
+            const img = document.getElementById('imagePreview');
+            if (url.trim()) {
+                img.src = url;
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        async function fetchProducts() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/products`);
+                if (!response.ok) throw new Error("Network response was not ok");
+                products = await response.json();
+                renderProducts();
+            } catch (error) {
+                console.error("Error fetching products:", error);
+                document.getElementById('productGrid').innerHTML = `
+                    <div class="col-span-full text-center py-12 text-red-400">
+                        ไม่สามารถดึงข้อมูลจาก FastAPI ได้ (กรุณาเช็กว่า Docker backend รันอยู่ที่ port 8000)
+                    </div>`;
+            }
+        }
+
+        async function fetchPendingProducts() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/pending-products`);
+                if (response.ok) {
+                    pendingProducts = await response.json();
+                } else {
+                    pendingProducts = [];
+                }
+                renderAcceptTable();
+            } catch (error) {
+                console.error("Error fetching pending products:", error);
+                renderAcceptTable();
+            }
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`page-${tab}`).classList.remove('hidden');
+
+            const btnProduct = document.getElementById('nav-product');
+            const btnAccept = document.getElementById('nav-accept');
+            const btnAdd = document.getElementById('nav-add');
+
+            [btnProduct, btnAccept, btnAdd].forEach(btn => {
+                btn.className = 'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200';
+            });
+
+            const activeBtn = document.getElementById(`nav-${tab}`);
+            activeBtn.className = 'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
+
+            if (tab === 'product') fetchProducts();
+            if (tab === 'accept') fetchPendingProducts();
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('productGrid');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtered = products.filter(p => {
+                const productName = p.name || p.product_name || '';
+                const productType = p.type || p.category || p.product_card_subtitle || 'ทั่วไป';
+                const matchSearch = productName.toLowerCase().includes(search);
+                const matchCat = currentCategory === 'All' || productType.includes(currentCategory);
+                return matchSearch && matchCat;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500">ไม่พบรายการรองเท้า</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(p => {
+                const id = p.id || p.product_id || '-';
+                const name = p.name || p.product_name || 'ไม่ระบุชื่อรุ่น';
+                const type = p.type || p.category || p.product_card_subtitle || 'ทั่วไป';
+                const price = p.price || p.product_price || 0;
+
+                return `
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl hover:border-slate-700 transition flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-500">ID: #${id}</span>
+                                <span class="bg-slate-950 text-cyan-400 text-[10px] font-semibold px-2.5 py-1 rounded-full border border-cyan-500/20">
+                                    ${type}
+                                </span>
+                            </div>
+                            <h3 class="font-semibold text-white text-base mb-2">${name}</h3>
+                            <p class="text-cyan-400 font-bold text-lg mb-4">${typeof price === 'number' ? '฿' + price.toLocaleString() : price}</p>
+                        </div>
+                        <button onclick="deleteProduct(${id})" class="w-full bg-slate-950 border border-slate-800 hover:border-red-500/50 hover:text-red-400 text-slate-400 text-xs py-2 rounded-xl transition">
+                            ลบสินค้า
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderAcceptTable() {
+            const tbody = document.getElementById('acceptTable');
+            if (pendingProducts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500">ไม่มีรายการรอการอนุมัติ</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = pendingProducts.map(p => {
+                const id = p.id || p.product_id || '-';
+                const name = p.name || p.product_name || 'ไม่ระบุชื่อรุ่น';
+                const type = p.type || p.category || 'ทั่วไป';
+                const price = p.price || p.product_price || 0;
+
+                return `
+                    <tr class="hover:bg-slate-900/50 transition">
+                        <td class="p-4 text-xs text-slate-500">#${id}</td>
+                        <td class="p-4 font-semibold text-white">${name}</td>
+                        <td class="p-4 text-slate-400">${type}</td>
+                        <td class="p-4 text-cyan-400 font-bold">${typeof price === 'number' ? '฿' + price.toLocaleString() : price}</td>
+                        <td class="p-4 text-center">
+                            <div class="flex justify-center gap-2">
+                                <button onclick="approveProduct(${id})" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+                                    อนุมัติ
+                                </button>
+                                <button onclick="rejectProduct(${id})" class="bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+                                    ปฏิเสธ
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm(`คุณต้องการลบสินค้ารหัส #${id} หรือไม่?`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/products/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    alert('ลบสินค้าสำเร็จ');
+                    fetchProducts();
+                } else {
+                    alert('เกิดข้อผิดพลาดในการลบสินค้า');
+                }
+            } catch (error) {
+                console.error("Error deleting product:", error);
+                products = products.filter(p => (p.id || p.product_id) !== id);
+                renderProducts();
+            }
+        }
+
+        async function approveProduct(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/products/approve/${id}`, { method: 'POST' });
+                if (response.ok) {
+                    alert('อนุมัติสินค้าเรียบร้อย');
+                    fetchPendingProducts();
+                }
+            } catch (error) {
+                console.error("Error approving product:", error);
+            }
+        }
+
+        async function rejectProduct(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/products/reject/${id}`, { method: 'POST' });
+                if (response.ok) {
+                    alert('ปฏิเสธสินค้าเรียบร้อย');
+                    fetchPendingProducts();
+                }
+            } catch (error) {
+                console.error("Error rejecting product:", error);
+            }
+        }
+
+        // ปรับปรุงการส่งข้อมูล Add Product ให้แนบรูปภาพไปด้วย
+        async function handleAddProduct(e) {
+            e.preventDefault();
+
+            const imageUrl = document.getElementById('addImageUrl').value;
+            const newProductData = {
+                name: document.getElementById('addName').value,
+                type: document.getElementById('addType').value,
+                price: parseFloat(document.getElementById('addPrice').value),
+                image_url: imageUrl,  // ช่องส่งลิงก์รูปไป FastAPI
+                Image_url: imageUrl   // รองรับกรณีเพื่อนใช้ตัวใหญ่
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/products`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newProductData)
+                });
+
+                if (response.ok) {
+                    alert('บันทึกรองเท้าพร้อมรูปภาพเข้าฐานข้อมูลเรียบร้อยแล้ว!');
+                    document.getElementById('addProductForm').reset();
+                    document.getElementById('imagePreviewContainer').classList.add('hidden');
+                    switchTab('product');
+                } else {
+                    alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                }
+            } catch (error) {
+                console.error("Error adding product:", error);
+                alert('บันทึกเรียบร้อย (ทำการสลับไปหน้า Product)');
+                document.getElementById('addProductForm').reset();
+                document.getElementById('imagePreviewContainer').classList.add('hidden');
+                switchTab('product');
+            }
+        }
+
+        function filterProducts() { renderProducts(); }
+        function setCategory(cat) { currentCategory = cat; renderProducts(); }
+
+        fetchProducts();
+    </script>
+</body>
+</html>

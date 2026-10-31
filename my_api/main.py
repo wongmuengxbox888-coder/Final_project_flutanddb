@@ -17,8 +17,8 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:61194",
-        "http://127.0.0.1:61194",
+        "http://localhost:58409",
+        "http://127.0.0.1:65411",
         "http://localhost:5500",
         "http://127.0.0.1:5500",
     ],
@@ -893,4 +893,152 @@ def delete_admin_product(product_id: int):
         raise HTTPException(status_code=500, detail=str(error))
     finally:
         cursor.close()
+        conn.close()
+
+
+# =========================================================
+# DASHBOARD / PRODUCT MANAGEMENT ENDPOINTS
+# (เพิ่มต่อท้ายไฟล์ main.py)
+# =========================================================
+
+class ProductCreateRequest(BaseModel):
+    name: Optional[str] = None
+    product_name: Optional[str] = None
+    type: Optional[str] = "ทั่วไป"
+    category: Optional[str] = None
+    price: float
+    Image_url: Optional[str] = None
+    image_url: Optional[str] = None
+
+
+# 1. POST /products: เพิ่มสินค้าใหม่ลงในตาราง products
+@app.post("/products")
+def create_product(product: ProductCreateRequest):
+    # รองรับทั้งชื่อฟิลด์ name และ product_name
+    title = product.name or product.product_name
+    if not title:
+        raise HTTPException(status_code=400, detail="กรุณาระบุชื่อสินค้า")
+    
+    cat = product.category or product.type or "ทั่วไป"
+    img = product.Image_url or product.image_url or ""
+
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            # เช็กโครงสร้าง column จริงของตาราง products ก่อนบันทึก
+            cursor.execute("SHOW COLUMNS FROM products")
+            cols = [c["Field"] for c in cursor.fetchall()]
+            
+            name_col = "name" if "name" in cols else "product_name"
+            price_col = "price" if "price" in cols else "product_price"
+            cat_col = "category" if "category" in cols else ("type" if "type" in cols else None)
+            img_col = "Image_url" if "Image_url" in cols else ("image_url" if "image_url" in cols else None)
+
+            insert_fields = [f"`{name_col}`", f"`{price_col}`"]
+            insert_marks = ["%s", "%s"]
+            insert_params = [title, product.price]
+
+            if cat_col:
+                insert_fields.append(f"`{cat_col}`")
+                insert_marks.append("%s")
+                insert_params.append(cat)
+            
+            if img_col:
+                insert_fields.append(f"`{img_col}`")
+                insert_marks.append("%s")
+                insert_params.append(img)
+
+            sql = f"INSERT INTO products ({', '.join(insert_fields)}) VALUES ({', '.join(insert_marks)})"
+            cursor.execute(sql, tuple(insert_params))
+            new_id = cursor.lastrowid
+            
+        conn.commit()
+        return {"success": True, "message": "เพิ่มสินค้าเรียบร้อยแล้ว", "id": new_id}
+    except Exception as e:
+        conn.rollback()
+        print("ADD PRODUCT ERROR:", e)
+        raise HTTPException(status_code=500, detail=f"ไม่สามารถเพิ่มสินค้าได้: {e}")
+    finally:
+        conn.close()
+
+
+# 2. DELETE /products/{product_id}: ลบสินค้าออกจากคลัง
+@app.delete("/products/{product_id}")
+def delete_product_by_id(product_id: int):
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            p_pk, _ = _products_meta(cursor)
+            cursor.execute(f"DELETE FROM products WHERE `{p_pk}` = %s", (product_id,))
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="ไม่พบสินค้านี้ในคลัง")
+        conn.commit()
+        return {"success": True, "message": "ลบสินค้าเรียบร้อยแล้ว"}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        print("DELETE PRODUCT ERROR:", e)
+        raise HTTPException(status_code=500, detail=f"ลบสินค้าไม่สำเร็จ: {e}")
+    finally:
+        conn.close()
+
+
+# 3. GET /pending-products: ดึงรายการรองเท้าฝากขายที่รอการอนุมัติ
+@app.get("/pending-products")
+def get_pending_products():
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SHOW TABLES LIKE 'pending_products'")
+            if not cursor.fetchone():
+                return []
+            
+            cursor.execute("SELECT * FROM pending_products WHERE status = 'pending' ORDER BY id DESC")
+            return cursor.fetchall()
+    except Exception as e:
+        print("GET PENDING PRODUCTS ERROR:", e)
+        return []
+    finally:
+        conn.close()
+
+
+# 4. POST /products/approve/{product_id}: อนุมัติสินค้าฝากขาย
+@app.post("/products/approve/{product_id}")
+def approve_pending_product(product_id: int):
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SHOW TABLES LIKE 'pending_products'")
+            if not cursor.fetchone():
+                return {"success": True, "message": "อนุมัติสินค้าเรียบร้อย"}
+
+            cursor.execute("UPDATE pending_products SET status = 'approved' WHERE id = %s", (product_id,))
+        conn.commit()
+        return {"success": True, "message": "อนุมัติสินค้าเรียบร้อยแล้ว"}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"อนุมัติสินค้าไม่สำเร็จ: {e}")
+    finally:
+        conn.close()
+
+
+# 5. POST /products/reject/{product_id}: ปฏิเสธสินค้าฝากขาย
+@app.post("/products/reject/{product_id}")
+def reject_pending_product(product_id: int):
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SHOW TABLES LIKE 'pending_products'")
+            if not cursor.fetchone():
+                return {"success": True, "message": "ปฏิเสธสินค้าเรียบร้อย"}
+
+            cursor.execute("UPDATE pending_products SET status = 'rejected' WHERE id = %s", (product_id,))
+        conn.commit()
+        return {"success": True, "message": "ปฏิเสธสินค้าเรียบร้อยแล้ว"}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"ปฏิเสธสินค้าไม่สำเร็จ: {e}")
+    finally:
         conn.close()
