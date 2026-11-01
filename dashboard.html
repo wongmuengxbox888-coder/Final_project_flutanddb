@@ -51,9 +51,17 @@
 
         <!-- PAGE 1: PRODUCT LIST -->
         <section id="page-product">
-            <header class="mb-6">
-                <h2 class="text-2xl font-bold text-white">คลังสินค้า (Product Catalog)</h2>
-                <p class="text-neutral-400 text-sm">จัดการและค้นหารายการรองเท้าทั้งหมดในระบบ</p>
+            <!-- เพิ่ม: การ์ดแสดงจำนวนสินค้า -->
+            <header class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">คลังสินค้า (Product Catalog)</h2>
+                    <p class="text-neutral-400 text-sm">จัดการและค้นหารายการรองเท้าทั้งหมดในระบบ</p>
+                </div>
+                <div class="bg-neutral-900 border border-neutral-800 rounded-2xl px-5 py-3 text-center shrink-0">
+                    <p class="text-[10px] text-neutral-400">สินค้าทั้งหมด</p>
+                    <p id="productCount" class="text-2xl font-bold text-orange-400">0</p>
+                    <p id="productShown" class="text-[10px] text-neutral-500"></p>
+                </div>
             </header>
 
             <div class="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -79,6 +87,22 @@
                 </div>
                 <button onclick="fetchOrders()" class="bg-neutral-900 border border-neutral-800 hover:border-orange-500/50 text-neutral-300 text-xs px-4 py-2 rounded-xl transition">รีเฟรช</button>
             </header>
+
+            <!-- เพิ่ม: สรุปจำนวนออเดอร์ -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 text-center">
+                    <p class="text-[10px] text-neutral-400">ออเดอร์ทั้งหมด</p>
+                    <p id="orderTotal" class="text-2xl font-bold text-white">0</p>
+                </div>
+                <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 text-center">
+                    <p class="text-[10px] text-neutral-400">รอรับ</p>
+                    <p id="orderPending" class="text-2xl font-bold text-amber-400">0</p>
+                </div>
+                <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 text-center">
+                    <p class="text-[10px] text-neutral-400">รับแล้ว</p>
+                    <p id="orderAccepted" class="text-2xl font-bold text-emerald-400">0</p>
+                </div>
+            </div>
 
             <div id="orderList" class="space-y-5">
                 <div class="text-center py-12 text-neutral-400">กำลังโหลดออเดอร์...</div>
@@ -235,6 +259,10 @@
                 return name.toLowerCase().includes(search) &&
                     (currentCategory === 'All' || type.includes(currentCategory));
             });
+
+            // เพิ่ม: อัปเดตตัวเลขจำนวนสินค้า
+            document.getElementById('productCount').textContent = products.length;
+            document.getElementById('productShown').textContent = `แสดง ${filtered.length} รายการ`;
 
             if (filtered.length === 0) {
                 grid.innerHTML = `<div class="col-span-full text-center py-12 text-neutral-400">ไม่พบรายการรองเท้า</div>`;
@@ -419,6 +447,12 @@
         }
 
         function renderOrders() {
+            // เพิ่ม: อัปเดตตัวเลขสรุปออเดอร์
+            const acceptedCount = orders.filter(o => String(o.status).toLowerCase() === 'accepted').length;
+            document.getElementById('orderTotal').textContent = orders.length;
+            document.getElementById('orderPending').textContent = orders.length - acceptedCount;
+            document.getElementById('orderAccepted').textContent = acceptedCount;
+
             const box = document.getElementById('orderList');
             if (orders.length === 0) {
                 box.innerHTML = `<div class="text-center py-12 text-neutral-400">ยังไม่มีออเดอร์จากลูกค้า</div>`;
