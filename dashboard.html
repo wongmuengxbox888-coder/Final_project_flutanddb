@@ -10,38 +10,38 @@
         body { font-family: 'Prompt', sans-serif; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col md:flex-row">
+<body class="bg-black text-white min-h-screen flex flex-col md:flex-row">
 
     <!-- Sidebar -->
-    <aside class="w-full md:w-64 md:sticky md:top-0 md:h-screen md:shrink-0 md:self-start bg-slate-900 border-r border-slate-800 p-6 flex flex-col justify-between">
+    <aside class="w-full md:w-64 md:sticky md:top-0 md:h-screen md:shrink-0 md:self-start bg-neutral-950 border-r border-neutral-800 p-6 flex flex-col justify-between">
         <div>
             <div class="flex items-center gap-3 mb-8">
-                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold text-xl border border-cyan-500/20">👟</div>
+                <div class="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center font-bold text-xl border border-orange-500/20">👟</div>
                 <div>
                     <h1 class="font-bold text-lg text-white leading-tight">For shoe</h1>
-                    <p class="text-xs text-slate-400">Admin Dashboard</p>
+                    <p class="text-xs text-neutral-400">Admin Dashboard</p>
                 </div>
             </div>
 
             <nav class="space-y-2">
-                <button onclick="switchTab('product')" id="nav-product" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                <button onclick="switchTab('product')" id="nav-product" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
                     <span>📦</span><span>Product (คลังสินค้า)</span>
                 </button>
-                <button onclick="switchTab('accept')" id="nav-accept" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+                <button onclick="switchTab('accept')" id="nav-accept" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100">
                     <span>🧾</span><span>Accept (รับออเดอร์)</span>
                 </button>
-                <button onclick="switchTab('add')" id="nav-add" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+                <button onclick="switchTab('add')" id="nav-add" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100">
                     <span>➕</span><span>Add Product (เพิ่มสินค้า)</span>
                 </button>
             </nav>
         </div>
 
-        <div class="pt-6 border-t border-slate-800">
+        <div class="pt-6 border-t border-neutral-800">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-300">AD</div>
+                <div class="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-xs font-bold text-neutral-300">AD</div>
                 <div>
                     <p class="text-xs font-medium text-white">Admin User</p>
-                    <p class="text-[10px] text-slate-400">FastAPI Backend</p>
+                    <p class="text-[10px] text-neutral-400">FastAPI Backend</p>
                 </div>
             </div>
         </div>
@@ -53,20 +53,20 @@
         <section id="page-product">
             <header class="mb-6">
                 <h2 class="text-2xl font-bold text-white">คลังสินค้า (Product Catalog)</h2>
-                <p class="text-slate-400 text-sm">จัดการและค้นหารายการรองเท้าทั้งหมดในระบบ</p>
+                <p class="text-neutral-400 text-sm">จัดการและค้นหารายการรองเท้าทั้งหมดในระบบ</p>
             </header>
 
-            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-                <input type="text" id="searchInput" oninput="renderProducts()" placeholder="ค้นหารุ่นรองเท้า..." class="w-full md:w-96 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+            <div class="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <input type="text" id="searchInput" oninput="renderProducts()" placeholder="ค้นหารุ่นรองเท้า..." class="w-full md:w-96 bg-black border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-neutral-100 focus:outline-none focus:border-orange-500 transition">
                 <div class="flex gap-2 flex-wrap w-full md:w-auto">
-                    <button onclick="setCategory('All')" class="bg-cyan-500 text-slate-950 font-medium px-4 py-2 rounded-xl text-xs">ทั้งหมด</button>
-                    <button onclick="setCategory('Vintage')" class="bg-slate-950 text-slate-400 border border-slate-800 font-medium px-4 py-2 rounded-xl text-xs hover:text-white">Vintage</button>
-                    <button onclick="setCategory('Limited')" class="bg-slate-950 text-slate-400 border border-slate-800 font-medium px-4 py-2 rounded-xl text-xs hover:text-white">Limited Edition</button>
+                    <button data-cat="All" onclick="setCategory('All')" class="cat-btn bg-orange-500 text-white font-medium px-4 py-2 rounded-xl text-xs">ทั้งหมด</button>
+                    <button data-cat="Vintage" onclick="setCategory('Vintage')" class="cat-btn bg-black text-neutral-400 border border-neutral-800 font-medium px-4 py-2 rounded-xl text-xs hover:text-white">Vintage</button>
+                    <button data-cat="Limited" onclick="setCategory('Limited')" class="cat-btn bg-black text-neutral-400 border border-neutral-800 font-medium px-4 py-2 rounded-xl text-xs hover:text-white">Limited Edition</button>
                 </div>
             </div>
 
             <div id="productGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="col-span-full text-center py-12 text-slate-500">กำลังโหลดข้อมูลจากฐานข้อมูล...</div>
+                <div class="col-span-full text-center py-12 text-neutral-400">กำลังโหลดข้อมูลจากฐานข้อมูล...</div>
             </div>
         </section>
 
@@ -75,13 +75,13 @@
             <header class="mb-6 flex items-center justify-between">
                 <div>
                     <h2 class="text-2xl font-bold text-white">Accept (ออเดอร์จากหน้าบ้าน)</h2>
-                    <p class="text-slate-400 text-sm">เฉพาะรองเท้าที่ลูกค้ากดสั่งจากตะกร้า กดรับแล้วจะบันทึกลงตาราง accept</p>
+                    <p class="text-neutral-400 text-sm">ออเดอร์ที่ลูกค้ากดยืนยันจากตะกร้า กดรับแล้วระบบจะบันทึกลงตาราง accept ให้อัตโนมัติ</p>
                 </div>
-                <button onclick="fetchOrders()" class="bg-slate-900 border border-slate-800 hover:border-cyan-500/50 text-slate-300 text-xs px-4 py-2 rounded-xl transition">รีเฟรช</button>
+                <button onclick="fetchOrders()" class="bg-neutral-900 border border-neutral-800 hover:border-orange-500/50 text-neutral-300 text-xs px-4 py-2 rounded-xl transition">รีเฟรช</button>
             </header>
 
             <div id="orderList" class="space-y-5">
-                <div class="text-center py-12 text-slate-500">กำลังโหลดออเดอร์...</div>
+                <div class="text-center py-12 text-neutral-400">กำลังโหลดออเดอร์...</div>
             </div>
         </section>
 
@@ -89,20 +89,20 @@
         <section id="page-add" class="hidden">
             <header class="mb-6">
                 <h2 class="text-2xl font-bold text-white">เพิ่มรองเท้าเข้าคลัง (Add Product)</h2>
-                <p class="text-slate-400 text-sm">กรอกข้อมูลรองเท้าคู่ใหม่พร้อม URL รูปภาพเพื่อบันทึกเข้า MySQL</p>
+                <p class="text-neutral-400 text-sm">กรอกข้อมูลรองเท้าคู่ใหม่พร้อม URL รูปภาพเพื่อบันทึกเข้า MySQL</p>
             </header>
 
-            <div class="max-w-2xl bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+            <div class="max-w-2xl bg-neutral-900 border border-neutral-800 p-6 rounded-2xl">
                 <form id="addProductForm" onsubmit="handleAddProduct(event)" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">ชื่อรุ่นรองเท้า (Name)</label>
-                        <input type="text" id="addName" required placeholder="เช่น Nike Air Force 1 '07" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500">
+                        <label class="block text-xs font-medium text-neutral-300 mb-1">ชื่อรุ่นรองเท้า (Name)</label>
+                        <input type="text" id="addName" required placeholder="เช่น Nike Air Force 1 '07" class="w-full bg-black border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-neutral-100 focus:outline-none focus:border-orange-500">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">ประเภท (Category)</label>
-                            <select id="addType" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500">
+                            <label class="block text-xs font-medium text-neutral-300 mb-1">ประเภท (Category)</label>
+                            <select id="addType" class="w-full bg-black border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-neutral-100 focus:outline-none focus:border-orange-500">
                                 <option value="รองเท้าผู้ชาย">รองเท้าผู้ชาย</option>
                                 <option value="รองเท้าบาสเก็ตบอล">รองเท้าบาสเก็ตบอล</option>
                                 <option value="รองเท้าวิ่ง">รองเท้าวิ่ง</option>
@@ -111,24 +111,24 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">ราคา (Price)</label>
-                            <input type="number" id="addPrice" required placeholder="5200" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500">
+                            <label class="block text-xs font-medium text-neutral-300 mb-1">ราคา (Price)</label>
+                            <input type="number" id="addPrice" required placeholder="5200" class="w-full bg-black border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-neutral-100 focus:outline-none focus:border-orange-500">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">ลิงก์รูปภาพ (Image URL / Path)</label>
-                        <input type="text" id="addImageUrl" placeholder="https://static.nike.com/... หรือชื่อไฟล์รูป" oninput="previewImage(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500">
+                        <label class="block text-xs font-medium text-neutral-300 mb-1">ลิงก์รูปภาพ (Image URL / Path)</label>
+                        <input type="text" id="addImageUrl" placeholder="https://static.nike.com/... หรือชื่อไฟล์รูป" oninput="previewImage(this.value)" class="w-full bg-black border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-neutral-100 focus:outline-none focus:border-orange-500">
                     </div>
 
                     <div id="imagePreviewContainer" class="hidden">
-                        <label class="block text-xs font-medium text-slate-400 mb-1">ตัวอย่างรูปภาพ (Preview)</label>
-                        <div class="h-36 w-full rounded-xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center">
+                        <label class="block text-xs font-medium text-neutral-400 mb-1">ตัวอย่างรูปภาพ (Preview)</label>
+                        <div class="h-36 w-full rounded-xl bg-black border border-neutral-800 overflow-hidden flex items-center justify-center">
                             <img id="imagePreview" src="" alt="Preview" class="h-full object-cover">
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full bg-cyan-500 text-slate-950 font-semibold py-3 rounded-xl text-sm hover:bg-cyan-400 transition">
+                    <button type="submit" class="w-full bg-orange-500 text-white font-semibold py-3 rounded-xl text-sm hover:bg-orange-600 transition">
                         บันทึกข้อมูลเข้าฐานข้อมูล
                     </button>
                 </form>
@@ -142,14 +142,23 @@
 
         let products = [];
         let orders = [];
-        const openOrders = new Set();
-        function toggleOrder(id, isOpen) { isOpen ? openOrders.add(id) : openOrders.delete(id); }
         let currentCategory = 'All';
+        let editingId = null;
+        let busy = false; // กันกดปุ่มซ้ำระหว่างรอเซิร์ฟเวอร์
 
         function esc(s) {
             return String(s ?? '').replace(/[&<>"']/g, c => (
                 { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
             ));
+        }
+
+        // อ่านข้อความ error จาก FastAPI ได้ทั้งแบบ string และ array (422)
+        function errText(data, res, fallback) {
+            if (data && typeof data.detail === 'string') return `${data.detail} (HTTP ${res.status})`;
+            if (data && Array.isArray(data.detail)) {
+                return data.detail.map(d => d.msg || JSON.stringify(d)).join(', ') + ` (HTTP ${res.status})`;
+            }
+            return `${fallback} (HTTP ${res.status})`;
         }
 
         function previewImage(url) {
@@ -166,15 +175,15 @@
         function switchTab(tab) {
             document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
             document.getElementById(`page-${tab}`).classList.remove('hidden');
-            if (tab !== 'product') document.getElementById('productGrid').innerHTML = '';
+            if (tab !== 'product') { editingId = null; document.getElementById('productGrid').innerHTML = ''; }
 
             const base = 'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium ';
             ['product', 'accept', 'add'].forEach(t => {
                 document.getElementById(`nav-${t}`).className =
-                    base + 'text-slate-400 hover:bg-slate-800 hover:text-slate-200';
+                    base + 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100';
             });
             document.getElementById(`nav-${tab}`).className =
-                base + 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
+                base + 'bg-orange-500/10 text-orange-400 border border-orange-500/20';
 
             if (tab === 'product') fetchProducts();
             if (tab === 'accept') fetchOrders();
@@ -183,7 +192,7 @@
         // ---------- Products ----------
         async function fetchProducts() {
             try {
-                const res = await fetch(`${API_BASE_URL}/products`);
+                const res = await fetch(`${API_BASE_URL}/products`, { cache: 'no-store' });
                 if (!res.ok) throw new Error('bad response');
                 products = await res.json();
                 renderProducts();
@@ -194,52 +203,161 @@
             }
         }
 
+        // ---- ตัวช่วยอ่านข้อมูลสินค้า: ไม่ว่า column จะชื่ออะไรก็หาให้เจอ ----
+        function pickKey(p, exact, loose) {
+            const keys = Object.keys(p).filter(k => k !== '_pk');
+            return keys.find(k => exact.test(k)) || (loose ? keys.find(k => loose.test(k)) : undefined);
+        }
+        function getId(p) {
+            if (p._pk !== undefined && p._pk !== null) return String(p._pk);
+            const k = pickKey(p, /^(id|product_id|productid)$/i) || Object.keys(p)[0];
+            return String(p[k]);
+        }
+        function getName(p) {
+            const k = pickKey(p, /^(name|product_name|title)$/i, /name|title/i);
+            return k && p[k] ? String(p[k]) : 'ไม่ระบุชื่อรุ่น';
+        }
+        function getPrice(p) {
+            const k = pickKey(p, /^(price|product_price)$/i, /price/i);
+            if (!k) return 0;
+            const n = parseFloat(String(p[k]).replace(/[^0-9.]/g, ''));
+            return isNaN(n) ? 0 : n;
+        }
+
         function renderProducts() {
             if (document.getElementById('page-product').classList.contains('hidden')) return;
             const grid = document.getElementById('productGrid');
             const search = document.getElementById('searchInput').value.toLowerCase();
 
             const filtered = products.filter(p => {
-                const name = p.name || p.product_name || '';
-                const type = p.type || p.category || p.product_card_subtitle || 'ทั่วไป';
+                const name = getName(p);
+                const type = String(p.type || p.category || p.product_card_subtitle || 'ทั่วไป');
                 return name.toLowerCase().includes(search) &&
                     (currentCategory === 'All' || type.includes(currentCategory));
             });
 
             if (filtered.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500">ไม่พบรายการรองเท้า</div>`;
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-neutral-400">ไม่พบรายการรองเท้า</div>`;
                 return;
             }
 
             grid.innerHTML = filtered.map(p => {
-                const id = p.id || p.product_id || '-';
-                const name = p.name || p.product_name || 'ไม่ระบุชื่อรุ่น';
-                const type = p.type || p.category || p.product_card_subtitle || 'ทั่วไป';
-                const price = Number(p.price || p.product_price || 0);
+                const id = getId(p);
+                const name = getName(p);
+                const type = String(p.type || p.category || p.product_card_subtitle || 'ทั่วไป');
+                const price = getPrice(p);
+                const inputCls = 'w-full bg-black border border-neutral-800 rounded-xl px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:border-orange-500';
+                const editing = editingId === id;
+
+                // id ที่ใส่ใน onclick / id ของ input ต้อง escape กัน attribute พัง
+                const idAttr = esc(id);
+                const idJs = esc(JSON.stringify(id)); // เช่น &quot;12&quot;
+
+                const body = editing ? `
+                    <label class="block text-[10px] text-neutral-400 mb-1">ชื่อรุ่น</label>
+                    <input type="text" data-edit-name="${idAttr}" value="${esc(name)}" class="${inputCls} mb-3">
+                    <label class="block text-[10px] text-neutral-400 mb-1">ราคา (฿)</label>
+                    <input type="number" min="0" data-edit-price="${idAttr}" value="${price}" class="${inputCls} mb-4">
+                ` : `
+                    <h3 class="font-semibold text-white text-base mb-2">${esc(name)}</h3>
+                    <p class="text-orange-400 font-bold text-lg mb-4">฿${price.toLocaleString()}</p>
+                `;
+
+                const actions = editing ? `
+                    <div class="flex gap-2">
+                        <button onclick="saveProduct(${idJs}, this)" class="flex-1 bg-orange-500 text-white hover:bg-orange-600 text-xs font-medium py-2 rounded-xl transition disabled:opacity-50">บันทึก</button>
+                        <button onclick="cancelEdit()" class="flex-1 bg-black border border-neutral-800 text-neutral-400 hover:text-white text-xs py-2 rounded-xl transition">ยกเลิก</button>
+                    </div>
+                ` : `
+                    <div class="flex gap-2">
+                        <button onclick="startEdit(${idJs})" class="flex-1 bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 text-xs font-medium py-2 rounded-xl transition">แก้ไข</button>
+                        <button onclick="deleteProduct(${idJs}, this)" class="flex-1 bg-black border border-neutral-800 hover:border-red-500/50 hover:text-red-400 text-neutral-400 text-xs py-2 rounded-xl transition disabled:opacity-50">ลบสินค้า</button>
+                    </div>
+                `;
+
                 return `
-                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl hover:border-slate-700 transition flex flex-col justify-between">
+                    <div class="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl hover:border-neutral-700 transition flex flex-col justify-between">
                         <div>
                             <div class="flex items-center justify-between mb-3">
-                                <span class="text-xs text-slate-500">ID: #${esc(id)}</span>
-                                <span class="bg-slate-950 text-cyan-400 text-[10px] font-semibold px-2.5 py-1 rounded-full border border-cyan-500/20">${esc(type)}</span>
+                                <span class="text-xs text-neutral-400">ID: #${esc(id)}</span>
+                                <span class="bg-black text-orange-400 text-[10px] font-semibold px-2.5 py-1 rounded-full border border-orange-500/20">${esc(type)}</span>
                             </div>
-                            <h3 class="font-semibold text-white text-base mb-2">${esc(name)}</h3>
-                            <p class="text-cyan-400 font-bold text-lg mb-4">฿${price.toLocaleString()}</p>
+                            ${body}
                         </div>
-                        <button onclick="deleteProduct(${Number(id)})" class="w-full bg-slate-950 border border-slate-800 hover:border-red-500/50 hover:text-red-400 text-slate-400 text-xs py-2 rounded-xl transition">ลบสินค้า</button>
+                        ${actions}
                     </div>`;
             }).join('');
         }
 
-        async function deleteProduct(id) {
-            if (!confirm(`คุณต้องการลบสินค้ารหัส #${id} หรือไม่?`)) return;
+        function startEdit(id) { editingId = String(id); renderProducts(); }
+        function cancelEdit() { editingId = null; renderProducts(); }
+
+        // หา input ในโหมดแก้ไขด้วย data-attribute (ไม่พึ่ง id ที่อาจมีอักขระพิเศษ)
+        function findEditInput(kind, id) {
+            return Array.from(document.querySelectorAll(`[data-edit-${kind}]`))
+                .find(el => el.getAttribute(`data-edit-${kind}`) === String(id));
+        }
+
+        async function saveProduct(id, btn) {
+            if (busy) return;
+            const nameEl = findEditInput('name', id);
+            const priceEl = findEditInput('price', id);
+            if (!nameEl || !priceEl) return alert('ไม่พบช่องกรอกข้อมูล ลองกดแก้ไขใหม่อีกครั้ง');
+
+            const name = nameEl.value.trim();
+            const price = parseFloat(priceEl.value);
+            if (!name || isNaN(price) || price < 0) return alert('กรอกชื่อและราคาให้ถูกต้อง');
+
+            busy = true;
+            if (btn) { btn.disabled = true; btn.textContent = 'กำลังบันทึก...'; }
             try {
-                const res = await fetch(`${API_BASE_URL}/products/${id}`, { method: 'DELETE' });
-                if (res.ok) { alert('ลบสินค้าสำเร็จ'); fetchProducts(); }
-                else alert('เกิดข้อผิดพลาดในการลบสินค้า');
+                const res = await fetch(`${API_BASE_URL}/products/${encodeURIComponent(id)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    console.error('PATCH failed', res.status, data);
+                    alert(errText(data, res, 'แก้ไขสินค้าไม่สำเร็จ'));
+                    return;
+                }
+                editingId = null;
+                await fetchProducts();
             } catch (err) {
                 console.error(err);
-                alert('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้');
+                alert('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: ' + err.message +
+                    '\n(เช็กว่า FastAPI รันอยู่ และรันโค้ดล่าสุดด้วย --reload)');
+            } finally {
+                busy = false;
+                if (btn) { btn.disabled = false; btn.textContent = 'บันทึก'; }
+            }
+        }
+
+        async function deleteProduct(id, btn) {
+            if (busy) return;
+            if (!confirm(`คุณต้องการลบสินค้ารหัส #${id} หรือไม่?\n(รายการนี้จะหายจากออเดอร์เก่าด้วย)`)) return;
+
+            busy = true;
+            if (btn) { btn.disabled = true; btn.textContent = 'กำลังลบ...'; }
+            try {
+                const res = await fetch(`${API_BASE_URL}/products/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    console.error('DELETE failed', res.status, data);
+                    alert(errText(data, res, 'ลบสินค้าไม่สำเร็จ'));
+                    return;
+                }
+                products = products.filter(p => getId(p) !== String(id));
+                renderProducts();
+                await fetchProducts();
+            } catch (err) {
+                console.error(err);
+                alert('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: ' + err.message +
+                    '\n(เช็กว่า FastAPI รันอยู่ และรันโค้ดล่าสุดด้วย --reload)');
+            } finally {
+                busy = false;
+                if (btn) { btn.disabled = false; btn.textContent = 'ลบสินค้า'; }
             }
         }
 
@@ -266,7 +384,7 @@
                     switchTab('product');
                 } else {
                     const data = await res.json().catch(() => ({}));
-                    alert(data.detail || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                    alert(errText(data, res, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'));
                 }
             } catch (err) {
                 console.error(err);
@@ -274,7 +392,16 @@
             }
         }
 
-        function setCategory(cat) { currentCategory = cat; renderProducts(); }
+        function setCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(b => {
+                const active = b.dataset.cat === cat;
+                b.className = 'cat-btn font-medium px-4 py-2 rounded-xl text-xs ' + (active
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-black text-neutral-400 border border-neutral-800 hover:text-white');
+            });
+            renderProducts();
+        }
 
         // ---------- Orders (หน้า Accept) ----------
         async function fetchOrders() {
@@ -294,7 +421,7 @@
         function renderOrders() {
             const box = document.getElementById('orderList');
             if (orders.length === 0) {
-                box.innerHTML = `<div class="text-center py-12 text-slate-500">ยังไม่มีออเดอร์จากลูกค้า</div>`;
+                box.innerHTML = `<div class="text-center py-12 text-neutral-400">ยังไม่มีออเดอร์จากลูกค้า</div>`;
                 return;
             }
 
@@ -303,46 +430,19 @@
                 const badge = accepted
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                     : 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-
-                const rows = o.items.map(i => `
-                    <tr class="border-t border-slate-800">
-                        <td class="p-3 text-white">${esc(i.product_name || ('สินค้า #' + i.product_id))}</td>
-                        <td class="p-3"><input type="number" min="1" id="qty-${o.order_id}-${i.product_id}" value="${i.quantity}"
-                            class="w-20 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"></td>
-                        <td class="p-3"><input type="number" min="0" id="price-${o.order_id}-${i.product_id}" value="${i.price}"
-                            class="w-28 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"></td>
-                        <td class="p-3 text-right"><button onclick="saveItem(${o.order_id}, ${i.product_id})"
-                            class="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 px-3 py-1 rounded-lg text-xs transition">บันทึก</button></td>
-                    </tr>`).join('');
-
                 return `
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-                            <div>
-                                <p class="font-semibold text-white">${esc(o.order_number || ('ออเดอร์ #' + o.order_id))}</p>
-                                <p class="text-xs text-slate-400">ลูกค้า: ${esc(o.username || (o.user_id ? 'user #' + o.user_id : 'ไม่ระบุ'))}</p>
-                            </div>
-                            <span class="text-xs font-semibold px-3 py-1 rounded-full border ${badge}">${esc(o.status)}</span>
+                    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <p class="font-semibold text-white">${esc(o.order_number || ('ออเดอร์ #' + o.order_id))}</p>
+                            <p class="text-xs text-neutral-400">ลูกค้า: ${esc(o.username || (o.user_id ? 'user #' + o.user_id : 'ไม่ระบุ'))}</p>
                         </div>
-                        <details ${openOrders.has(o.order_id) ? 'open' : ''} ontoggle="toggleOrder(${o.order_id}, this.open)">
-                            <summary class="cursor-pointer select-none text-xs text-slate-400 hover:text-cyan-400">ดูรายการรองเท้า (${o.items.length} รายการ)</summary>
-                            <div class="overflow-x-auto max-h-64 overflow-y-auto mt-3">
-                            <table class="w-full text-left text-sm">
-                                <thead><tr class="text-xs text-slate-400">
-                                    <th class="p-3">รองเท้า</th><th class="p-3">จำนวน</th><th class="p-3">ราคา/คู่</th><th class="p-3"></th>
-                                </tr></thead>
-                                <tbody>${rows || '<tr><td colspan="4" class="p-3 text-slate-500">ไม่มีรายการสินค้า</td></tr>'}</tbody>
-                            </table>
-                            </div>
-                        </details>
-                        <div class="flex flex-wrap items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-800">
-                            <p class="text-cyan-400 font-bold">ยอดรวม (รวมค่าส่ง): ฿${Number(o.total).toLocaleString()}</p>
-                            <div class="flex gap-2">
-                                <button onclick="acceptOrder(${o.order_id})" ${accepted ? 'disabled' : ''}
-                                    class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 px-4 py-2 rounded-xl text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed">${accepted ? 'รับแล้ว' : 'รับออเดอร์'}</button>
-                                <button onclick="deleteOrder(${o.order_id})"
-                                    class="bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 px-4 py-2 rounded-xl text-xs font-medium transition">ลบออเดอร์</button>
-                            </div>
+                        <p class="text-orange-400 font-bold">฿${Number(o.total).toLocaleString()}</p>
+                        <span class="text-xs font-semibold px-3 py-1 rounded-full border ${badge}">${esc(o.status)}</span>
+                        <div class="flex gap-2">
+                            <button onclick="acceptOrder(${o.order_id})" ${accepted ? 'disabled' : ''}
+                                class="bg-orange-500 text-white hover:bg-orange-600 px-4 py-2 rounded-xl text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed">${accepted ? 'รับแล้ว' : 'รับออเดอร์'}</button>
+                            <button onclick="deleteOrder(${o.order_id})"
+                                class="bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 px-4 py-2 rounded-xl text-xs font-medium transition">ลบออเดอร์</button>
                         </div>
                     </div>`;
             }).join('');
@@ -352,7 +452,7 @@
             try {
                 const res = await fetch(url, options);
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) return alert(data.detail || errMsg);
+                if (!res.ok) return alert(errText(data, res, errMsg));
                 fetchOrders();
             } catch (err) {
                 console.error(err);
@@ -362,17 +462,6 @@
 
         function acceptOrder(id) {
             callOrderApi(`${API_BASE_URL}/admin/orders/${id}/status`, { method: 'PATCH' }, 'รับออเดอร์ไม่สำเร็จ');
-        }
-
-        function saveItem(orderId, productId) {
-            const quantity = parseInt(document.getElementById(`qty-${orderId}-${productId}`).value);
-            const price = parseFloat(document.getElementById(`price-${orderId}-${productId}`).value);
-            if (!(quantity >= 1) || !(price >= 0)) return alert('จำนวนหรือราคาไม่ถูกต้อง');
-            callOrderApi(`${API_BASE_URL}/admin/orders/${orderId}/items`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product_id: productId, quantity, price })
-            }, 'แก้ไขไม่สำเร็จ');
         }
 
         function deleteOrder(id) {

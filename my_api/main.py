@@ -1,10 +1,10 @@
-
 import os
 import re
 import pymysql
 import hashlib
 import hmac
 import secrets
+import traceback
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
@@ -13,7 +13,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 app = FastAPI()
-
 
 # อนุญาตให้ Flutter Web และหน้า admin.html เรียก API
 app.add_middleware(
@@ -81,6 +80,11 @@ class ProductCreateRequest(BaseModel):
     image_url: Optional[str] = None
 
 
+class ProductUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    price: Optional[float] = Field(default=None, ge=0)
+
+
 # ---------- DB / helpers ----------
 def get_db():
     return pymysql.connect(
@@ -113,12 +117,14 @@ def verify_password(password: str, stored: str) -> bool:
 
 
 def _num(value) -> float:
+    """แปลง Decimal/None เป็น float ให้ส่งเป็น JSON ได้"""
     if value is None:
         return 0.0
     return float(value)
 
 
 def _orders_meta(cursor):
+    """อ่านชื่อ column จริงของตาราง orders"""
     cursor.execute("SHOW COLUMNS FROM orders")
     columns = cursor.fetchall()
     names = {c["Field"].lower(): c for c in columns}
@@ -145,6 +151,7 @@ def _check_order_exists(cursor, pk: str, order_id: int):
 
 
 def _products_meta(cursor):
+    """หา primary key และ column ชื่อสินค้าจริงของตาราง products"""
     cursor.execute("SHOW COLUMNS FROM products")
     columns = cursor.fetchall()
     names = {c["Field"].lower(): c["Field"] for c in columns}
@@ -163,6 +170,37 @@ def _products_meta(cursor):
     return pk, name_col
 
 
+def _cascade_delete(cursor, table: str, where_sql: str, params: tuple, depth: int = 0):
+    """
+    ลบแถวใน `table` ตามเงื่อนไข where_sql โดยลบตารางลูกที่มี FK ชี้มาก่อน
+    (ทำซ้ำเป็นชั้นๆ เช่น products -> order_items -> ตารางที่ชี้ไป order_items)
+    """
+    if depth > 5:
+        return
+
+    cursor.execute(
+        """
+        SELECT TABLE_NAME AS t, COLUMN_NAME AS c, REFERENCED_COLUMN_NAME AS rc
+        FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND REFERENCED_TABLE_SCHEMA = DATABASE()
+          AND REFERENCED_TABLE_NAME = %s
+        """,
+        (table,),
+    )
+    children = cursor.fetchall()
+
+    for ch in children:
+        if ch["t"] == table:  # FK ชี้หาตัวเอง ข้ามไป กัน loop
+            continue
+        sub_where = (
+            f"`{ch['c']}` IN (SELECT `{ch['rc']}` FROM `{table}` WHERE {where_sql})"
+        )
+        _cascade_delete(cursor, ch["t"], sub_where, params, depth + 1)
+
+    cursor.execute(f"DELETE FROM `{table}` WHERE {where_sql}", params)
+
+
 # ---------- Auth ----------
 @app.post("/login")
 def login(data: LoginRequest):
@@ -179,6 +217,7 @@ def login(data: LoginRequest):
             )
             user = cursor.fetchone()
 
+            # อีเมลใหม่ -> บันทึกลงตาราง users
             if user is None:
                 username = email.split("@")[0]
                 cursor.execute(
@@ -189,6 +228,7 @@ def login(data: LoginRequest):
                 conn.commit()
                 return {"user_id": user_id, "username": username, "email": email}
 
+            # อีเมลเดิม -> ตรวจรหัสผ่าน
             stored = user["password_hash"]
             if not stored:
                 cursor.execute(
@@ -199,11 +239,7 @@ def login(data: LoginRequest):
             elif not verify_password(data.password, stored):
                 raise HTTPException(status_code=401, detail="อีเมลหรือรหัสผ่านไม่ถูกต้อง")
 
-            return {
-                "user_id": user["user_id"],
-                "username": user["username"],
-                "email": user["email"]
-            }
+            return {"user_id": user["user_id"], "username": user["username"], "email": user["email"]}
 
     except HTTPException:
         raise
@@ -220,25 +256,49 @@ def home():
     return {"message": "FastAPI is running"}
 
 
+@app.get("/health")
+def health():
+    """ใช้เช็กว่าเซิร์ฟเวอร์รันโค้ดล่าสุดอยู่ และต่อฐานข้อมูลได้"""
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            p_pk, name_col = _products_meta(cursor)
+        return {
+            "ok": True,
+            "version": "products-edit-delete-v2",
+            "products_pk": p_pk,
+            "products_name_col": name_col,
+        }
+    finally:
+        conn.close()
+
+
 # ---------- Products ----------
 @app.get("/products")
 def get_products():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            p_pk, _ = _products_meta(cursor)
             cursor.execute("SELECT * FROM products")
-            return cursor.fetchall()
+            rows = cursor.fetchall()
+            # แนบ primary key จริงไปด้วย ให้ปุ่มแก้ไข/ลบอ้างอิงแถวเดียวกับที่ฐานข้อมูลใช้
+            for r in rows:
+                r["_pk"] = r.get(p_pk)
+            return rows
     finally:
         conn.close()
 
 
+# ต้องวาง /products/search ไว้ "ก่อน" /products/{product_id}
 @app.get("/products/search")
 def search_products(name: str = Query(..., min_length=1)):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            _, name_col = _products_meta(cursor)
             cursor.execute(
-                "SELECT * FROM products WHERE name LIKE %s",
+                f"SELECT * FROM products WHERE `{name_col}` LIKE %s",
                 (f"%{name}%",),
             )
             return cursor.fetchall()
@@ -247,12 +307,13 @@ def search_products(name: str = Query(..., min_length=1)):
 
 
 @app.get("/products/{product_id}")
-def get_product(product_id: int):
+def get_product(product_id: str):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            p_pk, _ = _products_meta(cursor)
             cursor.execute(
-                "SELECT * FROM products WHERE id = %s",
+                f"SELECT * FROM products WHERE `{p_pk}` = %s",
                 (product_id,),
             )
             product = cursor.fetchone()
@@ -382,10 +443,14 @@ def get_addresses():
         conn.close()
 
 
-# ---------- Orders ----------
+# ---------- Orders (Flutter กดยืนยันคำสั่งซื้อ) ----------
 @app.post("/orders")
 def create_order(data: OrderRequest):
-    if not data.items:
+    valid_items = [
+        i for i in data.items
+        if i.product_id is not None and i.quantity >= 1 and i.price > 0
+    ]
+    if not valid_items:
         raise HTTPException(status_code=400, detail="ตะกร้าว่าง")
 
     conn = get_db()
@@ -446,6 +511,7 @@ def create_order(data: OrderRequest):
 
             order_id = cursor.lastrowid
 
+            # เลขคำสั่งซื้อ เช่น #RP-261025-025 (ต้องมี column order_number)
             order_number = f"#RP-{datetime.now():%y%m%d}-{order_id:03d}"
             if any(c["Field"].lower() == "order_number" for c in columns):
                 pk = next(
@@ -457,9 +523,7 @@ def create_order(data: OrderRequest):
                     (order_number, order_id),
                 )
 
-            for item in data.items:
-                if item.product_id is None:
-                    continue
+            for item in valid_items:
                 cursor.execute(
                     """
                     INSERT INTO order_items (order_id, product_id, quantity, price)
@@ -490,10 +554,15 @@ def create_order(data: OrderRequest):
 
 
 # =========================================================
-# ADMIN ORDERS
+# ADMIN ORDERS — หน้า Accept ใน dashboard.html
+#   GET    /admin/orders                  ดึงออเดอร์ทั้งหมด (พร้อมรายการสินค้า)
+#   PATCH  /admin/orders/{id}/status      รับออเดอร์ (status = Accepted)
+#   PATCH  /admin/orders/{id}/items       แก้จำนวน/ราคาสินค้าในออเดอร์
+#   DELETE /admin/orders/{id}             ลบออเดอร์
 # =========================================================
 @app.get("/admin/orders")
 def admin_get_orders():
+    """ดึงเฉพาะตาราง orders (ออเดอร์ที่ลูกค้ากดยืนยันจากตะกร้า) ไม่ยุ่งกับ order_items"""
     conn = get_db()
     try:
         with conn.cursor() as cursor:
@@ -501,34 +570,6 @@ def admin_get_orders():
 
             cursor.execute(f"SELECT * FROM orders ORDER BY `{pk}` DESC")
             order_rows = cursor.fetchall()
-
-            if not order_rows:
-                return {"success": True, "orders": []}
-
-            ids = [r[pk] for r in order_rows]
-            marks = ", ".join(["%s"] * len(ids))
-
-            p_pk, p_name = _products_meta(cursor)
-            cursor.execute(
-                f"""
-                SELECT oi.order_id, oi.product_id, oi.quantity, oi.price,
-                       p.`{p_name}` AS product_name
-                FROM order_items oi
-                LEFT JOIN products p ON p.`{p_pk}` = oi.product_id
-                WHERE oi.order_id IN ({marks})
-                ORDER BY oi.order_item_id
-                """,
-                tuple(ids),
-            )
-
-            items_by_order = {}
-            for r in cursor.fetchall():
-                items_by_order.setdefault(r["order_id"], []).append({
-                    "product_id": r["product_id"],
-                    "product_name": r["product_name"],
-                    "quantity": int(r["quantity"] or 1),
-                    "price": _num(r["price"]),
-                })
 
             usernames = {}
             if "user_id" in names:
@@ -548,31 +589,19 @@ def admin_get_orders():
 
         orders = []
         for o in order_rows:
-            oid = o[pk]
-            items = items_by_order.get(oid, [])
-            subtotal = sum(i["price"] * i["quantity"] for i in items)
-            total = (
-                _num(o[total_col["Field"]])
-                if total_col and o.get(total_col["Field"]) is not None
-                else subtotal + 100
-            )
-
             orders.append({
-                "order_id": oid,
+                "order_id": o[pk],
                 "order_number": o.get("order_number"),
                 "user_id": o.get("user_id"),
                 "username": usernames.get(o.get("user_id")),
                 "status": (
                     o.get(status_col["Field"]) if status_col else None
                 ) or "Pending",
-                "total": total,
-                "items": items,
+                "total": _num(o.get(total_col["Field"])) if total_col else 0,
             })
 
         return {"success": True, "orders": orders}
 
-    except HTTPException:
-        raise
     except Exception as e:
         print("GET ORDERS ERROR:", e)
         raise HTTPException(status_code=500, detail=f"ดึงคำสั่งซื้อไม่สำเร็จ: {e}")
@@ -580,155 +609,107 @@ def admin_get_orders():
         conn.close()
 
 
-# ---------- รับออเดอร์และบันทึกลงตาราง accept ----------
+# ---------- กดรับออเดอร์ -> โยนข้อมูลจากตาราง orders เข้าตาราง accept ----------
 @app.patch("/admin/orders/{order_id}/status")
 def admin_accept_order(order_id: int):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            pk, status_col, _total_col, _names = _orders_meta(cursor)
+            pk, status_col, total_col, _names = _orders_meta(cursor)
 
             if status_col is None:
-                raise HTTPException(
-                    status_code=400,
-                    detail="ตาราง orders ไม่มี column status"
-                )
+                raise HTTPException(status_code=400, detail="ตาราง orders ไม่มี column status")
+            if total_col is None:
+                raise HTTPException(status_code=400, detail="ตาราง orders ไม่มี column ราคารวม (total)")
 
-            _check_order_exists(cursor, pk, order_id)
-
-            # อ่านสถานะปัจจุบัน ป้องกันการกดรับซ้ำ
             cursor.execute(
-                f"SELECT `{status_col['Field']}` AS current_status "
-                f"FROM orders WHERE `{pk}` = %s FOR UPDATE",
-                (order_id,)
+                f"SELECT * FROM orders WHERE `{pk}` = %s FOR UPDATE", (order_id,)
             )
-            order_row = cursor.fetchone()
-            current_status = str(
-                (order_row or {}).get("current_status") or ""
-            ).strip().lower()
+            order = cursor.fetchone()
+            if order is None:
+                raise HTTPException(status_code=404, detail="ไม่พบคำสั่งซื้อนี้")
 
-            if current_status == "accepted":
-                raise HTTPException(
-                    status_code=409,
-                    detail=(
-                        "ออเดอร์นี้มีสถานะ Accepted อยู่แล้ว "
-                        "ถ้าเป็นออเดอร์ที่รับก่อนเพิ่มระบบบันทึกตาราง accept "
-                        "ให้เปลี่ยนสถานะกลับเป็น Pending ใน SQL แล้วกดรับใหม่"
-                    )
-                )
+            current = str(order.get(status_col["Field"]) or "").strip().lower()
+            if current == "accepted":
+                raise HTTPException(status_code=409, detail="ออเดอร์นี้ถูกรับไปแล้ว")
 
-            # ตรวจสอบคอลัมน์ในตาราง accept
+            # --- ตาราง accept ---
             cursor.execute("SHOW COLUMNS FROM `accept`")
-            accept_columns = {
-                col["Field"].lower(): col["Field"]
-                for col in cursor.fetchall()
-            }
-
-            if (
-                "accept_name" not in accept_columns
-                or "accept_price" not in accept_columns
-            ):
+            acc = {c["Field"].lower(): c for c in cursor.fetchall()}
+            if "accept_name" not in acc or "accept_price" not in acc:
                 raise HTTPException(
                     status_code=400,
-                    detail=(
-                        "ตาราง accept ต้องมีคอลัมน์ accept_name "
-                        "และ accept_price"
-                    )
+                    detail="ตาราง accept ต้องมีคอลัมน์ accept_name และ accept_price",
                 )
 
-            # ดึงชื่อสินค้าและราคาจาก order_items
-            p_pk, p_name = _products_meta(cursor)
-            cursor.execute(
-                f"""
-                SELECT
-                    oi.product_id,
-                    oi.quantity,
-                    oi.price,
-                    p.`{p_name}` AS product_name
-                FROM order_items oi
-                LEFT JOIN products p
-                    ON p.`{p_pk}` = oi.product_id
-                WHERE oi.order_id = %s
-                """,
-                (order_id,)
-            )
-            items = cursor.fetchall()
+            if order.get(total_col["Field"]) is None:
+                raise HTTPException(status_code=400, detail="ออเดอร์นี้ไม่มีราคารวม")
 
-            if not items:
-                raise HTTPException(
-                    status_code=400,
-                    detail="ออเดอร์นี้ไม่มีรายการสินค้าใน order_items"
-                )
-
-            # เพิ่มสินค้าแต่ละรายการลงตาราง accept
-            for item in items:
-                product_name = (
-                    item.get("product_name")
-                    or f"สินค้า #{item.get('product_id')}"
-                )
-                quantity = int(item.get("quantity") or 1)
-                unit_price = Decimal(str(item.get("price") or 0))
-
-                if quantity < 1 or unit_price < 0:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="จำนวนหรือราคาสินค้าในออเดอร์ไม่ถูกต้อง"
-                    )
-
-                line_total = unit_price * quantity
-
+            label = order.get("order_number") or f"Order #{order_id}"
+            if order.get("user_id") is not None:
                 cursor.execute(
-                    f"""
-                    INSERT INTO `accept`
-                        (`{accept_columns['accept_name']}`,
-                         `{accept_columns['accept_price']}`)
-                    VALUES (%s, %s)
-                    """,
-                    (product_name, line_total)
+                    "SELECT username FROM users WHERE user_id = %s", (order["user_id"],)
                 )
+                u = cursor.fetchone()
+                if u and u["username"]:
+                    label = f"{label} - {u['username']}"
+            label = label[:50]
+            price = int(round(_num(order[total_col["Field"]])))
 
-            # เปลี่ยนสถานะเป็น Accepted
+            fields = [f"`{acc['accept_name']['Field']}`", f"`{acc['accept_price']['Field']}`"]
+            marks = ["%s", "%s"]
+            params = [label, price]
+
+            # accept_id ไม่ได้เป็น AUTO_INCREMENT -> ใส่เลขออเดอร์ให้เอง (ไม่งั้น insert ไม่ผ่าน)
+            has_id = False
+            if "accept_id" in acc:
+                if "auto_increment" not in (acc["accept_id"]["Extra"] or "").lower():
+                    fields.insert(0, f"`{acc['accept_id']['Field']}`")
+                    marks.insert(0, "%s")
+                    params.insert(0, order_id)
+                    has_id = True
+
+            sql = f"INSERT INTO `accept` ({', '.join(fields)}) VALUES ({', '.join(marks)})"
+            if has_id:
+                sql += (
+                    f" ON DUPLICATE KEY UPDATE "
+                    f"`{acc['accept_name']['Field']}` = VALUES(`{acc['accept_name']['Field']}`), "
+                    f"`{acc['accept_price']['Field']}` = VALUES(`{acc['accept_price']['Field']}`)"
+                )
+            cursor.execute(sql, tuple(params))
+
+            # --- เปลี่ยนสถานะออเดอร์เป็น Accepted ---
             new_status = "Accepted"
             col_type = str(status_col["Type"])
-
             options = (
                 re.findall(r"'((?:[^']|'')*)'", col_type)
                 if col_type.lower().startswith("enum(") else []
             )
-
             if options:
-                match = next(
-                    (
-                        option for option in options
-                        if option.lower() == "accepted"
-                    ),
-                    None
-                )
-
+                match = next((o for o in options if o.lower() == "accepted"), None)
                 if match is None:
                     raise HTTPException(
                         status_code=400,
                         detail=(
-                            "column status เป็น ENUM แต่ไม่มีค่า Accepted "
-                            "กรุณาแก้ชนิด column status ให้รองรับ Accepted"
-                        )
+                            "column status เป็น ENUM แต่ไม่มีค่า Accepted ให้รัน: "
+                            f"ALTER TABLE orders MODIFY `{status_col['Field']}` "
+                            "VARCHAR(30) NOT NULL DEFAULT 'Pending';"
+                        ),
                     )
-
                 new_status = match
 
             cursor.execute(
-                f"UPDATE orders SET `{status_col['Field']}` = %s "
-                f"WHERE `{pk}` = %s",
-                (new_status, order_id)
+                f"UPDATE orders SET `{status_col['Field']}` = %s WHERE `{pk}` = %s",
+                (new_status, order_id),
             )
 
         conn.commit()
-
         return {
             "success": True,
-            "message": "รับออเดอร์และบันทึกข้อมูลลงตาราง accept เรียบร้อยแล้ว",
+            "message": "รับออเดอร์และบันทึกลงตาราง accept แล้ว",
             "order_id": order_id,
-            "accepted_items": len(items)
+            "accept_name": label,
+            "accept_price": price,
         }
 
     except HTTPException:
@@ -737,15 +718,11 @@ def admin_accept_order(order_id: int):
     except Exception as e:
         conn.rollback()
         print("ACCEPT ORDER ERROR:", repr(e))
-        raise HTTPException(
-            status_code=500,
-            detail=f"รับออเดอร์ไม่สำเร็จ: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"รับออเดอร์ไม่สำเร็จ: {e}")
     finally:
         conn.close()
 
 
-# ---------- แก้ไขสินค้าในออเดอร์ ----------
 @app.patch("/admin/orders/{order_id}/items")
 def admin_update_order_item(order_id: int, data: OrderItemUpdate):
     conn = get_db()
@@ -769,6 +746,7 @@ def admin_update_order_item(order_id: int, data: OrderItemUpdate):
                 (data.quantity, data.price, order_id, data.product_id),
             )
 
+            # คำนวณยอดรวมใหม่ (ราคาสินค้าทั้งหมด + ค่าจัดส่ง 100)
             if total_col is not None:
                 cursor.execute(
                     """
@@ -797,7 +775,6 @@ def admin_update_order_item(order_id: int, data: OrderItemUpdate):
         conn.close()
 
 
-# ---------- ลบออเดอร์ ----------
 @app.delete("/admin/orders/{order_id}")
 def admin_delete_order(order_id: int):
     conn = get_db()
@@ -824,7 +801,7 @@ def admin_delete_order(order_id: int):
 
 
 # =========================================================
-# PRODUCT MANAGEMENT
+# PRODUCT MANAGEMENT (หน้า Product / Add Product ใน dashboard)
 # =========================================================
 @app.post("/products")
 def create_product(product: ProductCreateRequest):
@@ -876,16 +853,83 @@ def create_product(product: ProductCreateRequest):
         conn.close()
 
 
+# ---------- แก้ไขชื่อ/ราคาสินค้า ----------
+# product_id เป็น str (ไม่ใช่ int) เพื่อไม่ให้ติด 422 ถ้า primary key ไม่ใช่ตัวเลข
+# MySQL จะแปลง '12' เป็น 12 เองตอนเทียบกับ column ตัวเลข
+@app.patch("/products/{product_id}")
+def update_product(product_id: str, data: ProductUpdateRequest):
+    if data.name is None and data.price is None:
+        raise HTTPException(status_code=400, detail="ไม่มีข้อมูลที่จะแก้ไข")
+    if data.name is not None and not data.name.strip():
+        raise HTTPException(status_code=400, detail="ชื่อสินค้าห้ามว่าง")
+
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            p_pk, name_col = _products_meta(cursor)
+            cursor.execute("SHOW COLUMNS FROM products")
+            cols = {c["Field"].lower(): c["Field"] for c in cursor.fetchall()}
+            price_col = (
+                cols.get("price") or cols.get("product_price")
+                or next((c for l, c in cols.items() if "price" in l), None)
+            )
+            name_col = (
+                next((c for l, c in cols.items() if l in ("name", "product_name", "title")), None)
+                or next((c for l, c in cols.items() if "name" in l or "title" in l), name_col)
+            )
+
+            cursor.execute(
+                f"SELECT `{p_pk}` FROM products WHERE `{p_pk}` = %s", (product_id,)
+            )
+            if cursor.fetchone() is None:
+                raise HTTPException(status_code=404, detail="ไม่พบสินค้านี้ในคลัง")
+
+            sets, params = [], []
+            if data.name is not None:
+                sets.append(f"`{name_col}` = %s")
+                params.append(data.name.strip())
+            if data.price is not None:
+                if price_col is None:
+                    raise HTTPException(status_code=400, detail="ตาราง products ไม่มี column ราคา")
+                sets.append(f"`{price_col}` = %s")
+                params.append(data.price)
+
+            params.append(product_id)
+            cursor.execute(
+                f"UPDATE products SET {', '.join(sets)} WHERE `{p_pk}` = %s",
+                tuple(params),
+            )
+
+        conn.commit()
+        return {"success": True, "message": "แก้ไขสินค้าเรียบร้อยแล้ว"}
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        traceback.print_exc()  # ดู error เต็มๆ ใน terminal
+        raise HTTPException(status_code=500, detail=f"แก้ไขสินค้าไม่สำเร็จ: {e}")
+    finally:
+        conn.close()
+
+
 # ---------- ลบสินค้า ----------
 @app.delete("/products/{product_id}")
-def delete_product_by_id(product_id: int):
+def delete_product_by_id(product_id: str):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             p_pk, _ = _products_meta(cursor)
-            cursor.execute(f"DELETE FROM products WHERE `{p_pk}` = %s", (product_id,))
-            if cursor.rowcount == 0:
+
+            cursor.execute(
+                f"SELECT `{p_pk}` FROM products WHERE `{p_pk}` = %s", (product_id,)
+            )
+            if cursor.fetchone() is None:
                 raise HTTPException(status_code=404, detail="ไม่พบสินค้านี้ในคลัง")
+
+            # ลบตารางลูกที่ชี้มาที่ products (และลูกของลูก) ก่อน แล้วค่อยลบสินค้า
+            _cascade_delete(cursor, "products", f"`{p_pk}` = %s", (product_id,))
 
         conn.commit()
         return {"success": True, "message": "ลบสินค้าเรียบร้อยแล้ว"}
@@ -893,15 +937,22 @@ def delete_product_by_id(product_id: int):
     except HTTPException:
         conn.rollback()
         raise
+    except pymysql.err.IntegrityError as e:
+        conn.rollback()
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=409,
+            detail=f"ลบไม่ได้ เพราะสินค้านี้ถูกอ้างอิงในตารางอื่น: {e}",
+        )
     except Exception as e:
         conn.rollback()
-        print("DELETE PRODUCT ERROR:", e)
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"ลบสินค้าไม่สำเร็จ: {e}")
     finally:
         conn.close()
 
 
-# ---------- สินค้าฝากขายที่รออนุมัติ ----------
+# ---------- สินค้าฝากขายที่รออนุมัติ (ของเดิม เก็บไว้) ----------
 @app.get("/pending-products")
 def get_pending_products():
     conn = get_db()
@@ -910,12 +961,10 @@ def get_pending_products():
             cursor.execute("SHOW TABLES LIKE 'pending_products'")
             if not cursor.fetchone():
                 return []
-
             cursor.execute(
                 "SELECT * FROM pending_products WHERE status = 'pending' ORDER BY id DESC"
             )
             return cursor.fetchall()
-
     except Exception as e:
         print("GET PENDING PRODUCTS ERROR:", e)
         return []
@@ -931,15 +980,12 @@ def approve_pending_product(product_id: int):
             cursor.execute("SHOW TABLES LIKE 'pending_products'")
             if not cursor.fetchone():
                 return {"success": True, "message": "อนุมัติสินค้าเรียบร้อย"}
-
             cursor.execute(
                 "UPDATE pending_products SET status = 'approved' WHERE id = %s",
                 (product_id,),
             )
-
         conn.commit()
         return {"success": True, "message": "อนุมัติสินค้าเรียบร้อยแล้ว"}
-
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"อนุมัติสินค้าไม่สำเร็จ: {e}")
@@ -955,15 +1001,12 @@ def reject_pending_product(product_id: int):
             cursor.execute("SHOW TABLES LIKE 'pending_products'")
             if not cursor.fetchone():
                 return {"success": True, "message": "ปฏิเสธสินค้าเรียบร้อย"}
-
             cursor.execute(
                 "UPDATE pending_products SET status = 'rejected' WHERE id = %s",
                 (product_id,),
             )
-
         conn.commit()
         return {"success": True, "message": "ปฏิเสธสินค้าเรียบร้อยแล้ว"}
-
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"ปฏิเสธสินค้าไม่สำเร็จ: {e}")
